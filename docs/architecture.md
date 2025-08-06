@@ -1,7 +1,8 @@
 
 
 # 项目文件结构
-yongdeng-eco-gov-support/
+```
+yongdeng-ecology-visualization/
 ├── backend/ # 后端代码
 │ ├── controllers/ # 控制器层（API 逻辑处理）
 │ ├── models/ # 数据模型（数据库交互）
@@ -24,5 +25,8 @@ yongdeng-eco-gov-support/
 │ ├── architecture.md # 系统架构文档
 │
 ├── .gitignore # Git 忽略文件
+```
+
+
 
 ---
