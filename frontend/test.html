@@ -1,0 +1,615 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>永登县地图（含所有风险区显示）</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        .controls {
+            padding: 15px;
+            background: #fff;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            align-items: center;
+        }
+        .query-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .basemap-controls {
+            margin-left: auto;
+            display: flex;
+            gap: 5px;
+        }
+        .basemap-btn {
+            padding: 4px 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            background: #f5f5f5;
+            cursor: pointer;
+            font-size: 12px;
+        }
+        .basemap-btn.active {
+            background: #3498db;
+            color: white;
+            border-color: #3498db;
+        }
+        select, button {
+            padding: 6px 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        button:hover {
+            background-color: #f0f0f0;
+        }
+        #showAllLandBtn {
+            background-color: #3498db;
+            color: white;
+            border: none;
+        }
+        #showAllLandBtn:hover {
+            background-color: #2980b9;
+        }
+        #showAllRiskBtn {
+            background-color: #e74c3c;
+            color: white;
+            border: none;
+        }
+        #showAllRiskBtn:hover {
+            background-color: #c0392b;
+        }
+        #map {
+            flex: 1;
+            width: 100%;
+        }
+        .message {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            padding: 8px 16px;
+            border-radius: 4px;
+            color: white;
+            display: none;
+            z-index: 1000;
+        }
+        .success { background: #0f9d58; }
+        .error { background: #d93025; }
+        .debug {
+            position: fixed;
+            bottom: 10px;
+            left: 10px;
+            background: rgba(0,0,0,0.7);
+            color: white;
+            padding: 10px;
+            max-width: 300px;
+            max-height: 200px;
+            overflow: auto;
+            font-size: 12px;
+            z-index: 1000;
+        }
+        .legend {
+            position: fixed;
+            bottom: 10px;
+            right: 10px;
+            background: white;
+            padding: 10px;
+            border-radius: 4px;
+            box-shadow: 0 1px 5px rgba(0,0,0,0.2);
+            z-index: 1000;
+            font-size: 12px;
+        }
+        .legend-title {
+            font-weight: bold;
+            margin-bottom: 5px;
+            text-align: center;
+        }
+        .legend-item {
+            display: flex;
+            align-items: center;
+            margin: 3px 0;
+        }
+        .legend-color {
+            width: 12px;
+            height: 12px;
+            margin-right: 5px;
+            border: 1px solid #333;
+        }
+    </style>
+</head>
+<body>
+<div class="controls">
+    <!-- 显示全部土地类型按钮 -->
+    <button id="showAllLandBtn" onclick="showAllLandTypes()">显示全部土地类型</button>
+
+    <!-- 新增：显示所有风险区按钮 -->
+    <button id="showAllRiskBtn" onclick="showAllRiskZones()">显示所有风险区</button>
+
+    <!-- 原有查询控件 -->
+    <div class="query-group">
+        <span>土地类型：</span>
+        <select id="landType">
+            <option value="">请选择</option>
+            <option value="1">植被</option>
+            <option value="2">水体</option>
+            <option value="3">裸土</option>
+            <option value="4">人工建筑</option>
+        </select>
+        <button onclick="queryByLandType()">查询土地类型</button>
+    </div>
+
+    <div class="query-group">
+        <span>风险度：</span>
+        <select id="riskLevel">
+            <option value="">请选择</option>
+            <option value="1">极低风险区</option>
+            <option value="2">低风险区</option>
+            <option value="3">中风险区</option>
+            <option value="4">高风险区</option>
+        </select>
+        <button onclick="queryByRiskLevel()">查询风险度</button>
+    </div>
+
+    <div class="query-group">
+        <span>综合查询：</span>
+        <select id="customLandType">
+            <option value="">土地类型</option>
+            <option value="1">植被</option>
+            <option value="2">水体</option>
+            <option value="3">裸土</option>
+            <option value="4">人工建筑</option>
+        </select>
+        <select id="customRiskLevel">
+            <option value="">风险度</option>
+            <option value="1">极低风险区</option>
+            <option value="2">低风险区</option>
+            <option value="3">中风险区</option>
+            <option value="4">高风险区</option>
+        </select>
+        <button onclick="queryByCustom()">查询</button>
+    </div>
+
+    <button onclick="clearMap()">清除图层</button>
+
+    <div class="basemap-controls">
+        <span>底图：</span>
+        <button class="basemap-btn active" onclick="setBasemap('amap-normal')">标准</button>
+        <button class="basemap-btn" onclick="setBasemap('amap-satellite')">卫星</button>
+        <button class="basemap-btn" onclick="setBasemap('none')">无</button>
+    </div>
+</div>
+<div id="map"></div>
+<div id="message" class="message"></div>
+<div id="debug" class="debug">调试日志：<br></div>
+
+<div class="legend">
+    <div class="legend-title">图例</div>
+    <div class="legend-section">
+        <div class="legend-item"><div class="legend-color" style="background-color: #4CAF50;"></div><span>植被</span></div>
+        <div class="legend-item"><div class="legend-color" style="background-color: #2196F3;"></div><span>水体</span></div>
+        <div class="legend-item"><div class="legend-color" style="background-color: #FFC107;"></div><span>裸土</span></div>
+        <div class="legend-item"><div class="legend-color" style="background-color: #F44336;"></div><span>人工建筑</span></div>
+    </div>
+    <div class="legend-section" style="margin-top: 8px;">
+        <div class="legend-item"><div class="legend-color" style="background-color: #81C784;"></div><span>极低风险区</span></div>
+        <div class="legend-item"><div class="legend-color" style="background-color: #4CAF50;"></div><span>低风险区</span></div>
+        <div class="legend-item"><div class="legend-color" style="background-color: #FFB74D;"></div><span>中风险区</span></div>
+        <div class="legend-item"><div class="legend-color" style="background-color: #F44336;"></div><span>高风险区</span></div>
+    </div>
+</div>
+
+<script>
+    // 地图初始化配置
+    const YONGDENG_BOUNDS = L.latLngBounds(
+        [36.1, 102.3],
+        [37.3, 104.0]
+    );
+    const YONGDENG_CENTER = [36.78, 103.28];
+    const YONGDENG_ZOOM = 10;
+    const MAX_ZOOM = 14;
+    const MIN_ZOOM = 9;
+
+    const map = L.map('map', {
+        renderer: L.canvas(),
+        preferCanvas: true,
+        zoomControl: true,
+        attributionControl: false,
+        maxBounds: YONGDENG_BOUNDS,
+        maxBoundsViscosity: 0.9,
+        minZoom: MIN_ZOOM,
+        maxZoom: MAX_ZOOM
+    }).setView(YONGDENG_CENTER, YONGDENG_ZOOM);
+
+    // 底图配置
+    let currentBasemap = null;
+    const basemaps = {
+        'amap-normal': L.tileLayer('https://webrd0{s}.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=8&x={x}&y={y}&z={z}', {
+            subdomains: ['1', '2', '3', '4'],
+            maxZoom: MAX_ZOOM,
+            minZoom: MIN_ZOOM,
+            bounds: YONGDENG_BOUNDS
+        }),
+        'amap-satellite': L.tileLayer('https://webst0{s}.is.autonavi.com/appmaptile?style=6&x={x}&y={y}&z={z}', {
+            subdomains: ['1', '2', '3', '4'],
+            maxZoom: MAX_ZOOM,
+            minZoom: MIN_ZOOM,
+            bounds: YONGDENG_BOUNDS
+        }),
+        'none': null
+    };
+    setBasemap('amap-normal');
+
+    // 图层管理变量
+    let allLayers = [];
+    let renderQueue = [];
+    let isRendering = false;
+    let boundaryLayer = null;
+    let landUseLayers = [];
+    let riskLevelLayers = []; // 风险区图层单独管理
+
+    // 颜色映射配置
+    const landTypeColors = {
+        1: '#4CAF50',   // 植被
+        2: '#2196F3',   // 水体
+        3: '#FFC107',   // 裸土
+        4: '#F44336'    // 人工建筑
+    };
+    const riskLevelColors = {
+        1: '#81C784',   // 极低风险区
+        2: '#4CAF50',   // 低风险区
+        3: '#FFB74D',   // 中风险区
+        4: '#F44336'    // 高风险区
+    };
+
+    const comboGridcodeMap = [
+        { risk: 3, usage: 3, value: 1 },
+        { risk: 3, usage: 1, value: 2 },
+        { risk: 4, usage: 3, value: 3 },
+        { risk: 4, usage: 4, value: 4 },
+        { risk: 3, usage: 4, value: 5 },
+        { risk: 4, usage: 1, value: 6 },
+        { risk: 2, usage: 3, value: 7 },
+        { risk: 2, usage: 1, value: 8 },
+        { risk: 3, usage: 2, value: 9 },
+        { risk: 4, usage: 2, value: 10 },
+        { risk: 2, usage: 2, value: 11 },
+        { risk: 2, usage: 4, value: 12 },
+        { risk: 1, usage: 3, value: 13 },
+        { risk: 1, usage: 1, value: 14 },
+        { risk: 1, usage: 4, value: 15 },
+        { risk: 1, usage: 2, value: 16 }
+    ];
+
+    // 工具函数
+    function logDebug(text) {
+        const debugEl = document.getElementById('debug');
+        debugEl.innerHTML += new Date().toLocaleTimeString() + '：' + text + '<br>';
+        debugEl.scrollTop = debugEl.scrollHeight;
+    }
+
+    function showMessage(text, isError = false, duration = 3000) {
+        const msg = document.getElementById('message');
+        msg.textContent = text;
+        msg.className = 'message ' + (isError ? 'error' : 'success');
+        msg.style.display = 'block';
+        setTimeout(() => msg.style.display = 'none', duration);
+    }
+
+    function setBasemap(type) {
+        if (currentBasemap && currentBasemap !== basemaps[type]) {
+            map.removeLayer(currentBasemap);
+        }
+        if (type !== 'none' && basemaps[type]) {
+            currentBasemap = basemaps[type];
+            map.addLayer(currentBasemap);
+        } else {
+            currentBasemap = null;
+            map.getContainer().style.backgroundColor = '#f5f5f5';
+        }
+        document.querySelectorAll('.basemap-btn').forEach(btn => btn.classList.remove('active'));
+        document.querySelector(`.basemap-btn[onclick="setBasemap('${type}')"]`).classList.add('active');
+        logDebug(`已切换到底图：${type === 'none' ? '无' : type === 'amap-normal' ? '高德标准' : '高德卫星'}`);
+    }
+
+    function clearMap() {
+        allLayers.forEach(layer => map.removeLayer(layer));
+        landUseLayers.forEach(layer => map.removeLayer(layer));
+        riskLevelLayers.forEach(layer => map.removeLayer(layer));
+        allLayers = [];
+        landUseLayers = [];
+        riskLevelLayers = [];
+        renderQueue = [];
+        isRendering = false;
+        map.setView(YONGDENG_CENTER, YONGDENG_ZOOM);
+        showMessage('已清除所有图层');
+        logDebug('已清除所有数据图层');
+    }
+
+    function loadBoundary() {
+        const boundaryUrl = 'yongdeng_boundary.json';
+        fetch(boundaryUrl)
+            .then(response => {
+                if (!response.ok) throw new Error(`加载失败（状态码：${response.status}）`);
+                return response.json();
+            })
+            .then(geojson => {
+                if (boundaryLayer) map.removeLayer(boundaryLayer);
+                boundaryLayer = L.geoJSON(geojson, {
+                    style: { color: '#2c3e50', weight: 3, fill: false, dashArray: '5, 5' }
+                }).addTo(map);
+                logDebug('永登县边界加载完成');
+            })
+            .catch(err => logDebug(`边界加载失败: ${err.message}`));
+    }
+
+    // WKT解析函数
+    function parseWkt(wkt) {
+        try {
+            const trimWkt = wkt.trim();
+            let type, coordinates;
+            const cleanWkt = trimWkt.replace(/\s+/g, ' ').trim();
+
+            if (cleanWkt.startsWith('MULTIPOLYGON')) {
+                type = 'MultiPolygon';
+                const startIndex = cleanWkt.indexOf('(((') + 3;
+                const endIndex = cleanWkt.lastIndexOf(')))');
+                if (startIndex === -1 || endIndex === -1 || startIndex >= endIndex)
+                    throw new Error('MULTIPOLYGON格式不正确');
+                const coordStr = cleanWkt.substring(startIndex, endIndex);
+                coordinates = parseMultiPolygonCoordinates(coordStr);
+            } else if (cleanWkt.startsWith('POLYGON')) {
+                type = 'Polygon';
+                const startIndex = cleanWkt.indexOf('((') + 2;
+                const endIndex = cleanWkt.lastIndexOf('))');
+                if (startIndex === -1 || endIndex === -1 || startIndex >= endIndex)
+                    throw new Error('POLYGON格式不正确');
+                const coordStr = cleanWkt.substring(startIndex, endIndex);
+                coordinates = parsePolygonCoordinates(coordStr);
+            } else {
+                throw new Error(`不支持的类型: ${cleanWkt.substring(0, 10)}`);
+            }
+            return { type, coordinates };
+        } catch (err) {
+            logDebug(`WKT解析失败: ${err.message}`);
+            return null;
+        }
+    }
+
+    function parsePolygonCoordinates(coordStr) {
+        const points = coordStr.split(',');
+        if (points.length < 3) throw new Error(`多边形至少需要3个点，实际有${points.length}个`);
+        return [points.map(point => {
+            const coords = point.trim().split(/\s+/);
+            if (coords.length !== 2) throw new Error(`无效坐标格式: ${point}`);
+            const lng = parseFloat(coords[0]);
+            const lat = parseFloat(coords[1]);
+            if (isNaN(lng) || isNaN(lat)) throw new Error(`无效坐标值: ${point}`);
+            return [lng, lat];
+        })];
+    }
+
+    function parseMultiPolygonCoordinates(coordStr) {
+        return [parsePolygonCoordinates(coordStr)];
+    }
+
+    // 分片渲染函数
+    function startRenderQueue() {
+        if (isRendering || !renderQueue.length) return;
+        isRendering = true;
+
+        let totalValid = 0;
+        let totalEmptyGeom = 0;
+        let totalParseError = 0;
+        const allBounds = L.latLngBounds();
+
+        logDebug(`开始渲染，总数据量：${renderQueue.length}条`);
+
+        const processBatch = () => {
+            const batch = renderQueue.splice(0, 200);
+            if (!batch.length) {
+                isRendering = false;
+                logDebug(`渲染完成：有效${totalValid}条`);
+                showMessage(`渲染完成：共${totalValid}条数据`);
+                if (totalValid > 0 && !allBounds.isEmpty()) {
+                    map.fitBounds(allBounds, { padding: [50, 50], maxZoom: MAX_ZOOM });
+                }
+                return;
+            }
+
+            batch.forEach(item => {
+                if (!item.Geom || item.Geom.trim() === '') {
+                    totalEmptyGeom++;
+                    return;
+                }
+
+                const geometry = parseWkt(item.Geom);
+                if (!geometry) {
+                    totalParseError++;
+                    return;
+                }
+
+                try {
+                    const geojson = { type: "Feature", geometry: geometry, properties: {} };
+                    let style = { color: '#333', weight: 1, fillOpacity: 0.7 };
+
+                    if (item.type === 'usage') {
+                        style.fillColor = landTypeColors[item.gridcode] || '#999';
+                    } else if (item.type === 'risk') {
+                        style.fillColor = riskLevelColors[item.gridcode] || '#999';
+                    } else if (item.type === 'combo') {
+                        style.fillColor = riskLevelColors[item.risk] || '#999';
+                    }
+
+                    const layer = L.geoJSON(geojson, { style }).addTo(map);
+                    allLayers.push(layer);
+
+                    // 按类型添加到对应图层数组
+                    if (item.type === 'usage') {
+                        landUseLayers.push(layer);
+                    } else if (item.type === 'risk') {
+                        riskLevelLayers.push(layer);
+                    }
+
+                    totalValid++;
+                    allBounds.extend(layer.getBounds());
+                } catch (err) {
+                    logDebug(`图层添加失败：${err.message}`);
+                    totalParseError++;
+                }
+            });
+
+            requestAnimationFrame(processBatch);
+        };
+
+        processBatch();
+    }
+
+    // 原有查询函数
+    async function queryByLandType() {
+        clearMap();
+        const landType = document.getElementById('landType').value;
+        if (!landType) return showMessage('请选择土地类型', true);
+        try {
+            const res = await fetch(`http://localhost:8080/api/usages/gridcode?gridcode=${landType}&page=1&pageSize=1000`);
+            const result = await res.json();
+            if (!result.data || !Array.isArray(result.data)) throw new Error('数据格式错误');
+            renderQueue = result.data.map(item => ({ ...item, type: 'usage', gridcode: landType }));
+            startRenderQueue();
+        } catch (err) {
+            showMessage(err.message, true);
+        }
+    }
+
+    async function queryByRiskLevel() {
+        clearMap();
+        const riskLevel = document.getElementById('riskLevel').value;
+        if (!riskLevel) return showMessage('请选择风险度', true);
+        try {
+            const res = await fetch(`http://localhost:8080/api/risks/gridcode?gridcode=${riskLevel}&page=1&pageSize=1000`);
+            const result = await res.json();
+            if (!result.data || !Array.isArray(result.data)) throw new Error('数据格式错误');
+            renderQueue = result.data.map(item => ({ ...item, type: 'risk', gridcode: riskLevel }));
+            startRenderQueue();
+        } catch (err) {
+            showMessage(err.message, true);
+        }
+    }
+
+    async function queryByCustom() {
+        clearMap();
+        const landType = document.getElementById('customLandType').value;
+        const riskLevel = document.getElementById('customRiskLevel').value;
+        if (!landType || !riskLevel) return showMessage('请同时选择土地类型和风险度', true);
+        const risk = parseInt(riskLevel);
+        const usage = parseInt(landType);
+        const comboItem = comboGridcodeMap.find(item => item.risk === risk && item.usage === usage);
+        if (!comboItem) return showMessage('未找到对应的组合数据', true);
+        try {
+            const res = await fetch(`http://localhost:8080/api/riskusage/gridcode?gridcode=${comboItem.value}&page=1&pageSize=1000`);
+            const result = await res.json();
+            if (!result.data || !Array.isArray(result.data)) throw new Error('数据格式错误');
+            renderQueue = result.data.map(item => ({ ...item, type: 'combo', gridcode: comboItem.value, risk, usage }));
+            startRenderQueue();
+        } catch (err) {
+            showMessage(err.message, true);
+        }
+    }
+
+    // 显示全部土地类型
+    async function showAllLandTypes() {
+        clearMap();
+        showMessage('正在加载全部土地类型...', false, 10000);
+
+        try {
+            // 优先尝试批量接口
+            const res = await fetch('http://localhost:8080/api/usages/gridcode?gridcode=all&page=1&pageSize=5000');
+            logDebug(`全量土地类型请求状态：${res.status}`);
+            const result = await res.json();
+
+            if (!result.data || !Array.isArray(result.data)) {
+                // 后端不支持批量则并行请求所有类型
+                const landTypes = ['1', '2', '3', '4'];
+                const promises = landTypes.map(type =>
+                    fetch(`http://localhost:8080/api/usages/gridcode?gridcode=${type}&page=1&pageSize=1000`)
+                        .then(r => r.json())
+                        .then(data => data.data || [])
+                        .then(items => items.map(item => ({ ...item, type: 'usage', gridcode: type })))
+                );
+                const allData = await Promise.all(promises);
+                renderQueue = [].concat(...allData);
+            } else {
+                renderQueue = result.data.map(item => ({
+                    ...item,
+                    type: 'usage',
+                    gridcode: item.gridcode || item.landType
+                }));
+            }
+
+            logDebug(`全部土地类型数据加载完成，共${renderQueue.length}条`);
+            startRenderQueue();
+        } catch (err) {
+            showMessage(`加载失败: ${err.message}`, true);
+            logDebug(`全量土地类型加载失败: ${err.message}`);
+        }
+    }
+
+    // 【新增：显示所有风险区】
+    async function showAllRiskZones() {
+        clearMap();
+        showMessage('正在加载所有风险区...', false, 10000);
+
+        try {
+            // 方案1：尝试调用后端批量接口（推荐）
+            const res = await fetch('http://localhost:8080/api/risks/gridcode?gridcode=all&page=1&pageSize=5000');
+            logDebug(`全量风险区请求状态：${res.status}`);
+            const result = await res.json();
+
+            if (!result.data || !Array.isArray(result.data)) {
+                // 方案2：后端不支持批量则并行请求所有风险等级
+                const riskLevels = ['1', '2', '3', '4']; // 所有风险等级编码
+                const promises = riskLevels.map(level =>
+                    fetch(`http://localhost:8080/api/risks/gridcode?gridcode=${level}&page=1&pageSize=1000`)
+                        .then(r => r.json())
+                        .then(data => data.data || [])
+                        .then(items => items.map(item => ({ ...item, type: 'risk', gridcode: level })))
+                );
+                const allData = await Promise.all(promises);
+                renderQueue = [].concat(...allData); // 合并所有风险区数据
+            } else {
+                // 后端返回全量数据时处理
+                renderQueue = result.data.map(item => ({
+                    ...item,
+                    type: 'risk',
+                    gridcode: item.gridcode || item.riskLevel // 根据实际字段调整
+                }));
+            }
+
+            logDebug(`所有风险区数据加载完成，共${renderQueue.length}条`);
+            startRenderQueue(); // 批量渲染
+        } catch (err) {
+            showMessage(`加载失败: ${err.message}`, true);
+            logDebug(`全量风险区加载失败: ${err.message}`);
+        }
+    }
+
+    // 页面初始化
+    window.onload = function() {
+        loadBoundary();
+        showMessage('地图准备就绪', false, 2000);
+    };
+</script>
+</body>
+</html>
