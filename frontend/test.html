@@ -6,6 +6,7 @@
     <title>永登县地图（含所有风险区显示）</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         body {
             margin: 0;
@@ -13,6 +14,7 @@
             height: 100vh;
             display: flex;
             flex-direction: column;
+            overflow: hidden;
         }
         .controls {
             padding: 15px;
@@ -22,6 +24,7 @@
             flex-wrap: wrap;
             gap: 15px;
             align-items: center;
+            z-index: 100;
         }
         .query-group {
             display: flex;
@@ -71,6 +74,20 @@
         }
         #showAllRiskBtn:hover {
             background-color: #c0392b;
+        }
+        /* 下载按钮样式 */
+        .download-btn {
+            background-color: #2ecc71;
+            color: white;
+            border: none;
+        }
+        .download-btn:hover {
+            background-color: #27ae60;
+        }
+        #map-container {
+            flex: 1;
+            display: flex;
+            position: relative;
         }
         #map {
             flex: 1;
@@ -128,6 +145,119 @@
             margin-right: 5px;
             border: 1px solid #333;
         }
+
+        /* 右侧图片查看器样式 */
+        .image-viewer {
+            width: 320px;
+            background: white;
+            box-shadow: -2px 0 10px rgba(0,0,0,0.15);
+            display: flex;
+            flex-direction: column;
+            transition: transform 0.3s ease;
+            z-index: 90;
+            height: 100%;
+        }
+
+        .image-viewer.collapsed {
+            transform: translateX(320px);
+        }
+
+        .image-viewer-header {
+            padding: 12px 15px;
+            border-bottom: 1px solid #eee;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .image-viewer-title {
+            font-weight: bold;
+            font-size: 16px;
+        }
+
+        .image-viewer-close {
+            background: none;
+            border: none;
+            font-size: 18px;
+            cursor: pointer;
+            color: #666;
+            padding: 2px 6px;
+        }
+
+        .image-viewer-close:hover {
+            background: #f5f5f5;
+            color: #333;
+        }
+
+        .image-viewer-content {
+            flex: 1;
+            padding: 15px;
+            overflow-y: auto;
+        }
+
+        .image-container {
+            margin-bottom: 15px;
+            border-radius: 4px;
+            overflow: hidden;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+
+        .viewer-image {
+            width: 100%;
+            height: auto;
+            display: block;
+        }
+
+        .image-caption {
+            padding: 8px 10px;
+            background: #f9f9f9;
+            font-size: 14px;
+            text-align: center;
+            border-top: 1px solid #eee;
+        }
+
+        .toggle-viewer {
+            position: absolute;
+            right: 320px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: white;
+            border: none;
+            width: 30px;
+            height: 60px;
+            box-shadow: -2px 0 5px rgba(0,0,0,0.1);
+            border-radius: 6px 0 0 6px;
+            cursor: pointer;
+            z-index: 80;
+            transition: right 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .toggle-viewer.collapsed {
+            right: 0;
+        }
+
+        .toggle-viewer i {
+            color: #666;
+            transition: transform 0.3s ease;
+        }
+
+        .toggle-viewer.collapsed i {
+            transform: rotate(180deg);
+        }
+
+        /* 响应式调整 */
+        @media (max-width: 768px) {
+            .image-viewer {
+                width: 260px;
+            }
+
+            .toggle-viewer {
+                right: 260px;
+            }
+        }
     </style>
 </head>
 <body>
@@ -135,8 +265,12 @@
     <!-- 显示全部土地类型按钮 -->
     <button id="showAllLandBtn" onclick="showAllLandTypes()">显示全部土地类型</button>
 
-    <!-- 新增：显示所有风险区按钮 -->
+    <!-- 显示所有风险区按钮 -->
     <button id="showAllRiskBtn" onclick="showAllRiskZones()">显示所有风险区</button>
+
+    <!-- PDF下载按钮 -->
+    <button class="download-btn" onclick="downloadPDF('usage')">下载土地利用分类图</button>
+    <button class="download-btn" onclick="downloadPDF('risk')">下载风险区分析图</button>
 
     <!-- 原有查询控件 -->
     <div class="query-group">
@@ -191,7 +325,36 @@
         <button class="basemap-btn" onclick="setBasemap('none')">无</button>
     </div>
 </div>
-<div id="map"></div>
+
+<div id="map-container">
+    <div id="map"></div>
+
+    <!-- 右侧图片查看器 -->
+    <div class="image-viewer" id="imageViewer">
+        <div class="image-viewer-header">
+            <div class="image-viewer-title">土地利用类型图</div>
+            <button class="image-viewer-close" onclick="toggleImageViewer()">
+                <i class="fas fa-chevron-right"></i>
+            </button>
+        </div>
+        <div class="image-viewer-content">
+            <div class="image-container">
+                <img src="usage1.png" class="viewer-image" alt="土地利用图1" id="usageImage1">
+                <div class="image-caption">土地利用图1</div>
+            </div>
+            <div class="image-container">
+                <img src="usage2.png" class="viewer-image" alt="土地利用图2" id="usageImage2">
+                <div class="image-caption">土地利用图2</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 展开/收回按钮 -->
+    <button class="toggle-viewer" id="toggleViewer" onclick="toggleImageViewer()">
+        <i class="fas fa-chevron-left"></i>
+    </button>
+</div>
+
 <div id="message" class="message"></div>
 <div id="debug" class="debug">调试日志：<br></div>
 
@@ -306,6 +469,78 @@
         msg.className = 'message ' + (isError ? 'error' : 'success');
         msg.style.display = 'block';
         setTimeout(() => msg.style.display = 'none', duration);
+    }
+
+    // PDF下载功能
+    function downloadPDF(type) {
+        // 验证类型
+        if (!['usage', 'risk'].includes(type)) {
+            showMessage('无效的下载类型', true);
+            return;
+        }
+
+        // 显示加载状态
+        showMessage(`正在准备${type === 'usage' ? '土地利用分类图' : '风险区分析图'}...`, false, 10000);
+
+        // 创建下载链接
+        const pdfUrl = `${type}.pdf`; // 对应后端提供的PDF文件路径
+        const link = document.createElement('a');
+        link.href = pdfUrl;
+        link.download = `${type === 'usage' ? '土地利用分类图' : '风险区分析图'}.pdf`;
+
+        // 监听下载完成状态
+        fetch(pdfUrl, { method: 'HEAD' })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`文件不存在或无法访问 (${response.status})`);
+                }
+                // 触发下载
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                showMessage(`${type === 'usage' ? '土地利用分类图' : '风险区分析图'}下载已开始`);
+                logDebug(`${type}.pdf 下载请求已发送`);
+            })
+            .catch(err => {
+                showMessage(`下载失败: ${err.message}`, true);
+                logDebug(`PDF下载错误: ${err.message}`);
+            });
+    }
+
+    // 图片查看器功能
+    function toggleImageViewer() {
+        const viewer = document.getElementById('imageViewer');
+        const toggleBtn = document.getElementById('toggleViewer');
+
+        viewer.classList.toggle('collapsed');
+        toggleBtn.classList.toggle('collapsed');
+
+        // 切换按钮图标
+        const icon = toggleBtn.querySelector('i');
+        if (viewer.classList.contains('collapsed')) {
+            showMessage('土地利用图已隐藏');
+            logDebug('土地利用图查看器已隐藏');
+        } else {
+            showMessage('土地利用图已显示');
+            logDebug('土地利用图查看器已显示');
+        }
+    }
+
+    // 图片加载错误处理
+    function setupImageErrorHandling() {
+        const images = [
+            document.getElementById('usageImage1'),
+            document.getElementById('usageImage2')
+        ];
+
+        images.forEach(img => {
+            img.addEventListener('error', function() {
+                this.src = 'https://picsum.photos/300/200?grayscale'; // 占位图
+                this.alt = `无法加载${this.alt}`;
+                showMessage(`无法加载${this.alt}`, true);
+                logDebug(`图片加载失败: ${this.alt}`);
+            });
+        });
     }
 
     function setBasemap(type) {
@@ -566,7 +801,7 @@
         }
     }
 
-    // 【新增：显示所有风险区】
+    // 显示所有风险区
     async function showAllRiskZones() {
         clearMap();
         showMessage('正在加载所有风险区...', false, 10000);
@@ -608,6 +843,7 @@
     // 页面初始化
     window.onload = function() {
         loadBoundary();
+        setupImageErrorHandling();
         showMessage('地图准备就绪', false, 2000);
     };
 </script>
