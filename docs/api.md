@@ -193,14 +193,7 @@
 
 - **URL**: `/api/reports/eco-risk`
 - **方法**: `POST`
-- **请求参数**:
-
-```json
-{
-  "region_id": 1,
-  "report_type": "PDF"  // 可选：PDF 或 Excel
-}
-```
+- **请求参数**:"filename"
 
 - **响应**:
   - **成功**:

@@ -13,9 +13,9 @@ type DBConfig struct {
 
 func LoadConfig() (*DBConfig, error) {
 	// 硬编码数据库连接信息
-	host := "localhost"
-	user := "postgres"
-	password := "12345"
+	host := "8.141.127.186"
+	user := "app_user"
+	password := "UserP@ssWord"
 	dbname := "yongdeng"
 	port := "5432"
 
