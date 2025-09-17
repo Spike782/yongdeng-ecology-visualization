@@ -4,8 +4,6 @@ import (
 	"database/sql/driver"
 	"errors"
 	"fmt"
-	"github.com/jinzhu/gorm"
-
 	"github.com/twpayne/go-geom"
 	"github.com/twpayne/go-geom/encoding/wkt"
 )
@@ -59,7 +57,7 @@ func (m MultiPolygon) Value() (driver.Value, error) {
 }
 
 // GORM 钩子：在创建表时指定字段类型为 PostGIS 的 geometry
-func (MultiPolygon) GormDBDataType(db *gorm.DB, field *gorm.StructField) string {
-	// 根据数据库类型返回对应的字段类型，PostGIS 用 geometry
-	return "geometry"
-}
+//func (MultiPolygon) GormDBDataType(db *gorm.DB, field *gorm.schema) string {
+// 根据数据库类型返回对应的字段类型，PostGIS 用 geometry
+//return "geometry"
+//}

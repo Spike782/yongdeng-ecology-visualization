@@ -7,8 +7,8 @@ import (
 	"log"
 	"net/http"
 	"time"
-	"yongdeng-ecology-visualization/config"
-	"yongdeng-ecology-visualization/models"
+	"yongdeng-ecology-visualization/backend/config"
+	"yongdeng-ecology-visualization/backend/models"
 )
 
 // JWT 密钥，用于签名和验证

@@ -1,8 +1,6 @@
 package main
 
-import (
-	"yongdeng-ecology-visualization/routes"
-)
+import "yongdeng-ecology-visualization/backend/routes"
 
 func main() {
 

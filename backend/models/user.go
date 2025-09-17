@@ -3,7 +3,7 @@ package models
 import (
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
-	"yongdeng-ecology-visualization/config"
+	"yongdeng-ecology-visualization/backend/config"
 )
 
 type User struct {

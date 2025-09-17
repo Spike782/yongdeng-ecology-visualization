@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>永登县地图（含所有风险区显示）</title>
+    <title>永登生态可视化系统</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
@@ -28,7 +28,6 @@
             background: var(--gray-bg);
         }
 
-        /* ========== 顶部导航栏：仅改动这里 ========== */
         .controls {
             padding: 12px 18px;
             background: var(--white);
@@ -159,20 +158,6 @@
         .success { background: #00b894; }
         .error   { background: #ff4757; }
 
-        .debug {
-            position: fixed;
-            bottom: 10px;
-            left: 10px;
-            background: rgba(0,76,153,.85);
-            color: var(--white);
-            padding: 8px;
-            max-width: 300px;
-            max-height: 200px;
-            overflow: auto;
-            font-size: 12px;
-            z-index: 1000;
-            border-radius: 6px;
-        }
 
         .legend {
             position: fixed;
@@ -393,11 +378,11 @@
         </div>
         <div class="image-viewer-content">
             <div class="image-container">
-                <img src="usage1.png" class="viewer-image" alt="土地利用图1" id="usageImage1" />
+                <img src="static/usage1.png" class="viewer-image" alt="土地利用图1" id="usageImage1" />
                 <div class="image-caption">土地利用图1</div>
             </div>
             <div class="image-container">
-                <img src="usage2.png" class="viewer-image" alt="土地利用图2" id="usageImage2" />
+                <img src="static/usage2.png" class="viewer-image" alt="土地利用图2" id="usageImage2" />
                 <div class="image-caption">土地利用图2</div>
             </div>
         </div>
@@ -408,8 +393,8 @@
     </button>
 </div>
 
+
 <div id="message" class="message"></div>
-<div id="debug" class="debug">调试日志：<br /></div>
 
 <!-- 图例 -->
 <div class="legend">
@@ -428,7 +413,7 @@
     </div>
 </div>
 
-<!-- 原有脚本无任何改动，直接复制 -->
+
 <script>
     const YONGDENG_BOUNDS = L.latLngBounds([36.1, 102.3], [37.3, 104.0]);
     const YONGDENG_CENTER = [36.78, 103.28];
@@ -485,11 +470,6 @@
         { risk: 1, usage: 4, value: 15 }, { risk: 1, usage: 2, value: 16 }
     ];
 
-    function logDebug(text) {
-        const debugEl = document.getElementById('debug');
-        debugEl.innerHTML += new Date().toLocaleTimeString() + '：' + text + '<br/>';
-        debugEl.scrollTop = debugEl.scrollHeight;
-    }
 
     function showMessage(text, isError = false, duration = 3000) {
         const msg = document.getElementById('message');
@@ -516,11 +496,11 @@
                 link.click();
                 document.body.removeChild(link);
                 showMessage(`${type === 'usage' ? '土地利用分类图' : '风险区分析图'}下载已开始`);
-                logDebug(`${type}.pdf 下载请求已发送`);
+
             })
             .catch(err => {
                 showMessage(`下载失败: ${err.message}`, true);
-                logDebug(`PDF下载错误: ${err.message}`);
+
             });
     }
 
@@ -531,10 +511,10 @@
         toggleBtn.classList.toggle('collapsed');
         if (viewer.classList.contains('collapsed')) {
             showMessage('土地利用图已隐藏');
-            logDebug('土地利用图查看器已隐藏');
+
         } else {
             showMessage('土地利用图已显示');
-            logDebug('土地利用图查看器已显示');
+
         }
     }
 
@@ -545,7 +525,7 @@
                 img.src = 'https://picsum.photos/300/200?grayscale';
                 img.alt = `无法加载${img.alt}`;
                 showMessage(`无法加载${img.alt}`, true);
-                logDebug(`图片加载失败: ${img.alt}`);
+
             });
         });
     }
@@ -561,7 +541,7 @@
         }
         document.querySelectorAll('.basemap-btn').forEach(btn => btn.classList.remove('active'));
         document.querySelector(`.basemap-btn[onclick="setBasemap('${type}')"]`).classList.add('active');
-        logDebug(`已切换到底图：${type === 'none' ? '无' : type === 'amap-normal' ? '高德标准' : '高德卫星'}`);
+
     }
 
     function clearMap() {
@@ -570,7 +550,7 @@
         renderQueue = []; isRendering = false;
         map.setView(YONGDENG_CENTER, YONGDENG_ZOOM);
         showMessage('已清除所有图层');
-        logDebug('已清除所有数据图层');
+
     }
 
     function loadBoundary() {
@@ -581,9 +561,10 @@
                 boundaryLayer = L.geoJSON(geojson, {
                     style: { color: '#004c99', weight: 3, fill: false, dashArray: '5, 5' }
                 }).addTo(map);
-                logDebug('永登县边界加载完成');
+
             })
-            .catch(err => logDebug(`边界加载失败: ${err.message}`));
+            .catch(err => {
+            });
     }
 
     function parseWkt(wkt) {
@@ -613,7 +594,6 @@
             }
             return { type, coordinates };
         } catch (err) {
-            logDebug(`WKT解析失败: ${err.message}`);
             return null;
         }
     }
@@ -644,13 +624,11 @@
         let totalParseError = 0;
         const allBounds = L.latLngBounds();
 
-        logDebug(`开始渲染，总数据量：${renderQueue.length}条`);
 
         const processBatch = () => {
             const batch = renderQueue.splice(0, 200);
             if (!batch.length) {
                 isRendering = false;
-                logDebug(`渲染完成：有效${totalValid}条`);
                 showMessage(`渲染完成：共${totalValid}条数据`);
                 if (totalValid > 0 && !allBounds.isEmpty()) {
                     map.fitBounds(allBounds, { padding: [50, 50], maxZoom: MAX_ZOOM });
@@ -694,7 +672,6 @@
                     totalValid++;
                     allBounds.extend(layer.getBounds());
                 } catch (err) {
-                    logDebug(`图层添加失败：${err.message}`);
                     totalParseError++;
                 }
             });
@@ -760,7 +737,7 @@
         showMessage('正在加载全部土地类型...', false, 10000);
         try {
             const res = await fetch('http://localhost:8080/api/usages/gridcode?gridcode=all&page=1&pageSize=5000');
-            logDebug(`全量土地类型请求状态：${res.status}`);
+            // 移除日志打印
             const result = await res.json();
             if (!result.data || !Array.isArray(result.data)) {
                 const landTypes = ['1', '2', '3', '4'];
@@ -779,11 +756,9 @@
                     gridcode: item.gridcode || item.landType
                 }));
             }
-            logDebug(`全部土地类型数据加载完成，共${renderQueue.length}条`);
             startRenderQueue();
         } catch (err) {
             showMessage(`加载失败: ${err.message}`, true);
-            logDebug(`全量土地类型加载失败: ${err.message}`);
         }
     }
 
@@ -792,7 +767,6 @@
         showMessage('正在加载所有风险区...', false, 10000);
         try {
             const res = await fetch('http://localhost:8080/api/risks/gridcode?gridcode=all&page=1&pageSize=5000');
-            logDebug(`全量风险区请求状态：${res.status}`);
             const result = await res.json();
             if (!result.data || !Array.isArray(result.data)) {
                 const riskLevels = ['1', '2', '3', '4'];
@@ -811,11 +785,9 @@
                     gridcode: item.gridcode || item.riskLevel
                 }));
             }
-            logDebug(`所有风险区数据加载完成，共${renderQueue.length}条`);
             startRenderQueue();
         } catch (err) {
             showMessage(`加载失败: ${err.message}`, true);
-            logDebug(`全量风险区加载失败: ${err.message}`);
         }
     }
 
