@@ -128,9 +128,5 @@ go run main.go
 ## 九、联系方式
 
 * 作者：[@Spike782](https://github.com/Spike782)
-* 邮箱：（待补充）
 
----
 
-我已经结合你的 **技术总结文档** 写了一份详细的 README。
-要不要我再帮你生成一个 **英文版 README**，方便在 GitHub 上面展示给国际用户？
