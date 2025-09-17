@@ -4,11 +4,11 @@ import (
 	"github.com/gin-gonic/gin"
 	"net/http"
 	"strconv"
-	"yongdeng-ecology-visualization/config"
-	"yongdeng-ecology-visualization/models"
+	"yongdeng-ecology-visualization/backend/config"
+	"yongdeng-ecology-visualization/backend/models"
 )
 
-// GetRiskUsageByGridcode 根据 Gridcode 获取风险数据
+// 根据 Gridcode 获取风险数据
 func GetRiskUsageByGridcode(c *gin.Context) {
 	// 从上下文获取数据库连接
 	dbConfig := c.MustGet("db").(*config.DBConfig)
@@ -54,7 +54,7 @@ func GetRiskUsageByGridcode(c *gin.Context) {
 	})
 }
 
-// GetRisksByGridcode 根据 Gridcode 获取风险数据
+// 根据 Gridcode 获取风险数据
 func GetRisksByGridcode(c *gin.Context) {
 	// 从上下文获取数据库连接
 	dbConfig := c.MustGet("db").(*config.DBConfig)
@@ -100,7 +100,7 @@ func GetRisksByGridcode(c *gin.Context) {
 	})
 }
 
-// GetUsagesByGridcode 根据 Gridcode 获取风险数据
+// 根据 Gridcode 获取风险数据
 func GetUsagesByGridcode(c *gin.Context) {
 	// 从上下文获取数据库连接
 	dbConfig := c.MustGet("db").(*config.DBConfig)
